@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Cosmofood{% endblock %}</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#ff6b35',
+                        secondary: '#f7931e',
+                        'primary-dark': '#e55a2b',
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* Animaciones personalizadas */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
+        }
+    </style>
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body class="min-h-screen flex flex-col bg-gray-50">
+    <!-- Navbar -->
+    <nav class="bg-gradient-to-r from-primary to-secondary shadow-lg">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-center py-4">
+                <a class="text-white text-2xl font-bold flex items-center gap-2" href="{% url 'home' %}">
+                    <i class="fas fa-hamburger"></i> 
+                    <span>Cosmofood</span>
+                </a>
+                
+                <button class="lg:hidden text-white text-2xl" id="mobileMenuBtn">
+                    <i class="fas fa-bars"></i>
+                </button>
+                
+                <!-- âœ… MENÃš DESKTOP CORREGIDO -->
+                <div class="hidden lg:flex items-center gap-6" id="navMenu">
+                    <a class="text-white hover:text-gray-200 transition duration-200" href="{% url 'catalogo_productos' %}">Menu
+                    </a>
+
+                    {% if user.is_authenticated %}
+                        <a class="text-white hover:text-gray-200 transition duration-200 relative" href="{% url 'ver_carrito' %}">
+                            <i class="fas fa-shopping-cart text-xl"></i>
+                            {% if request.user.carrito.total_items > 0 %}
+                                <span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                    {{ request.user.carrito.total_items }}
+                                </span>
+                            {% endif %}
+                        </a>
+                        
+                        <div class="relative group">
+                            <button class="text-white hover:text-gray-200 transition duration-200 flex items-center gap-2">
+                                <i class="fas fa-user-circle text-xl"></i> 
+                                <span>{{ user.username }}</span>
+                                <i class="fas fa-chevron-down text-sm"></i>
+                            </button>
+                            
+                            <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                                <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 rounded-t-lg transition" href="{% url 'perfil' %}">
+                                    <i class="fas fa-user mr-2"></i> Mi Perfil
+                                </a>
+                                <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition" href="{% url 'mis_pedidos' %}">
+                                    <i class="fas fa-shopping-bag mr-2"></i> Mis Pedidos
+                                </a>
+                                <!-- âœ… MIS RECLAMOS AHORA DENTRO DEL MENÃš -->
+                                <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition" href="{% url 'mis_reclamos' %}">
+                                    <i class="fas fa-exclamation-circle mr-2"></i> Mis Reclamos
+                                </a>
+                                {% if user.rol == 'repartidor' %}
+                                    <hr class="my-1">
+                                    <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition" href="{% url 'repartidor_pedidos' %}">
+                                        <i class="fas fa-shipping-fast mr-2"></i> Mis Entregas
+                                    </a>
+                                {% endif %}
+                                {% if user.rol == 'administrador' %}
+                                    <hr class="my-1">
+                                    <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition" href="{% url 'admin_productos_lista' %}">
+                                        <i class="fas fa-box mr-2"></i> Gestion de Productos
+                                    </a>
+                                    <a class="block px-4 py-3 text-gray-700 hover:bg-gray-100 transition" href="{% url 'admin_pedidos_lista' %}">
+                                        <i class="fas fa-clipboard-list mr-2"></i> Gestion de Pedidos
+                                    </a>
+                                    <a class="nav-link {% if request.resolver_match.url_name == 'cocina_view' %}active{% endif %}" href="{% url 'cocina_view' %}">
+                                        <i class="fas fa-fire fa-fw me-3"></i>Cocina
+                                    </a>
+                                    {% if user.rol == 'cocina' %}
+                                        <hr class="border-white/30 my-2">
+                                    <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'cocina_view' %}">
+                                        <i class="fas fa-fire mr-2"></i> Panel de Cocina
+                                    </a>
+                                {% endif %}
+                                {% endif %}
+                                <hr class="my-1">
+                                <a class="block px-4 py-3 text-red-600 hover:bg-red-50 rounded-b-lg transition" href="{% url 'logout' %}">
+                                    <i class="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión
+                                </a>
+                            </div>
+                        </div>
+                    {% else %}
+                        <a class="text-white hover:text-gray-200 transition duration-200" href="{% url 'login' %}">
+                            Iniciar Sesión
+                        </a>
+                        <a class="bg-white text-primary px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition duration-200" href="{% url 'registro' %}">
+                            Registrarse
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- âœ… MENÃš MÃ“VIL CORREGIDO -->
+            <div class="lg:hidden hidden pb-4" id="mobileMenu">
+                <div class="flex flex-col gap-3">
+                    <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'catalogo_productos' %}">MenÃº</a>
+                    
+                    {% if user.is_authenticated %}
+                        <a class="text-white hover:text-gray-200 transition duration-200 py-2 flex items-center gap-2" href="{% url 'ver_carrito' %}">
+                            <i class="fas fa-shopping-cart"></i>
+                            Carrito
+                            {% if request.user.carrito.total_items > 0 %}
+                                <span class="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                    {{ request.user.carrito.total_items }}
+                                </span>
+                            {% endif %}
+                        </a>
+                        <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'perfil' %}">
+                            <i class="fas fa-user mr-2"></i> Mi Perfil
+                        </a>
+                        <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'mis_pedidos' %}">
+                            <i class="fas fa-shopping-bag mr-2"></i> Mis Pedidos
+                        </a>
+                        <!-- âœ… MIS RECLAMOS EN MENÃš MÃ“VIL -->
+                        <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'mis_reclamos' %}">
+                            <i class="fas fa-exclamation-circle mr-2"></i> Mis Reclamos
+                        </a>
+                        {% if user.rol == 'repartidor' %}
+                            <hr class="border-white/30 my-2">
+                            <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'repartidor_pedidos' %}">
+                                <i class="fas fa-shipping-fast mr-2"></i> Mis Entregas
+                            </a>
+                        {% endif %}
+                        {% if user.rol == 'administrador' %}
+                            <hr class="border-white/30 my-2">
+                            <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'admin_productos_lista' %}">
+                                <i class="fas fa-box mr-2"></i> Gestion de Productos
+                            </a>
+                            <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'admin_pedidos_lista' %}">
+                                <i class="fas fa-clipboard-list mr-2"></i> Gestion de Pedidos
+                            </a>
+                        {% endif %}
+                        <hr class="border-white/30 my-2">
+                        <a class="text-red-200 hover:text-red-100 transition duration-200 py-2" href="{% url 'logout' %}">
+                            <i class="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión
+                        </a>
+                    {% else %}
+                        <a class="text-white hover:text-gray-200 transition duration-200 py-2" href="{% url 'login' %}">
+                            Iniciar Sesión
+                        </a>
+                        <a class="bg-white text-primary px-4 py-2 rounded-lg font-semibold hover:bg-gray-100 transition duration-200 text-center" href="{% url 'registro' %}">
+                            Registrarse
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Mensajes de Django -->
+    {% if messages %}
+        <div class="container mx-auto px-4 mt-4">
+            {% for message in messages %}
+                <div class="animate-fade-in p-4 rounded-lg shadow-md mb-3 flex items-center justify-between 
+                    {% if message.tags == 'success' %}bg-green-50 text-green-800 border border-green-200
+                    {% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200
+                    {% elif message.tags == 'warning' %}bg-yellow-50 text-yellow-800 border border-yellow-200
+                    {% elif message.tags == 'info' %}bg-blue-50 text-blue-800 border border-blue-200
+                    {% else %}bg-gray-50 text-gray-800 border border-gray-200{% endif %}" 
+                    role="alert">
+                    <span>{{ message }}</span>
+                    <button type="button" class="ml-4 text-gray-500 hover:text-gray-700" onclick="this.parentElement.remove()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+    
+    <!-- Contenido principal -->
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+    
+    <!-- BotÃ³n Scroll to Top -->
+    <a href="#" id="scrollTopBtn" 
+       class="fixed bottom-6 right-6 bg-primary hover:bg-primary-dark text-white w-12 h-12 rounded-full shadow-lg flex items-center justify-center text-xl transition-all duration-300 opacity-0 invisible z-50" 
+       title="Volver arriba">
+        <i class="fas fa-arrow-up"></i>
+    </a>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-300 py-12 mt-auto">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+                <!-- Columna 1: Sobre Cosmofood -->
+                <div>
+                    <h3 class="text-white text-xl font-bold mb-4 flex items-center gap-2">
+                        <i class="fas fa-hamburger text-primary"></i>
+                        Cosmofood
+                    </h3>
+                    <p class="text-sm text-gray-400 mb-4">
+                        Descubre la mejor comida rapida de Valdivia. Productos frescos, entrega rapida y sabor inigualable.
+                    </p>
+                    <div class="flex gap-3">
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition duration-300">
+                            <i class="fab fa-facebook-f"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition duration-300">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition duration-300">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="w-10 h-10 bg-gray-800 hover:bg-primary rounded-full flex items-center justify-center transition duration-300">
+                            <i class="fab fa-youtube"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <!-- Columna 2: Enlaces RÃ¡pidos -->
+                <div>
+                    <h4 class="text-white font-bold mb-4">Enlaces Rapidos</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li>
+                            <a href="{% url 'home' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-home mr-2"></i>Inicio
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'catalogo_productos' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-utensils mr-2"></i>Nuestro Menu
+                            </a>
+                        </li>
+                        {% if user.is_authenticated %}
+                        <li>
+                            <a href="{% url 'mis_pedidos' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-shopping-bag mr-2"></i>Mis Pedidos
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'perfil' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-user mr-2"></i>Mi Perfil
+                            </a>
+                        </li>
+                        {% else %}
+                        <li>
+                            <a href="{% url 'login' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-sign-in-alt mr-2"></i>Iniciar Sesion
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{% url 'registro' %}" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-user-plus mr-2"></i>Registrarse
+                            </a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </div>
+                
+                <!-- Columna 3: Informacion -->
+                <div>
+                    <h4 class="text-white font-bold mb-4">Informacion</h4>
+                    <ul class="space-y-2 text-sm">
+                        <li>
+                            <a href="#" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-info-circle mr-2"></i>Acerca de
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-briefcase mr-2"></i>Trabaja con Nosotros
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-newspaper mr-2"></i>Blog
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-shield-alt mr-2"></i>Politica de Privacidad
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#" class="hover:text-primary transition duration-200">
+                                <i class="fas fa-file-contract mr-2"></i>TTerminos y Condiciones
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Columna 4: Contacto -->
+                <div>
+                    <h4 class="text-white font-bold mb-4">Contacto</h4>
+                    <ul class="space-y-3 text-sm">
+                        <li class="flex items-start gap-3">
+                            <i class="fas fa-map-marker-alt text-primary mt-1"></i>
+                            <span>Av. Los Lingues 1234<br>Valdivia, Chile</span>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-phone text-primary"></i>
+                            <a href="tel:+56912345678" class="hover:text-primary transition">+56 9 1234 5678</a>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-envelope text-primary"></i>
+                            <a href="mailto:contacto@cosmofood.cl" class="hover:text-primary transition">contacto@cosmofood.cl</a>
+                        </li>
+                        <li class="flex items-center gap-3">
+                            <i class="fas fa-clock text-primary"></i>
+                            <span>Lun - Dom: 11:00 - 23:00</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- LÃ­nea divisoria -->
+            <div class="border-t border-gray-800 pt-6 mt-6">
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-500">
+                    <p>&copy; 2025 Cosmofood. Todos los derechos reservados.</p>
+                    <div class="flex gap-6">
+                        <a href="#" class="hover:text-primary transition">Accesibilidad</a>
+                        <a href="#" class="hover:text-primary transition">Soporte</a>
+                        <a href="#" class="hover:text-primary transition">Mapa del Sitio</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        
+        if (mobileMenuBtn && mobileMenu) {
+            mobileMenuBtn.addEventListener('click', () => {
+                mobileMenu.classList.toggle('hidden');
+            });
+        }
+        
+        // LÃ³gica para el botÃ³n de "Scroll to Top"
+        const scrollTopBtn = document.getElementById('scrollTopBtn');
+
+        // Muestra u oculta el botÃ³n basado en la posiciÃ³n del scroll
+        window.onscroll = function() {
+            if (document.body.scrollTop > 150 || document.documentElement.scrollTop > 150) {
+                scrollTopBtn.classList.remove('opacity-0', 'invisible');
+                scrollTopBtn.classList.add('opacity-100', 'visible');
+            } else {
+                scrollTopBtn.classList.add('opacity-0', 'invisible');
+                scrollTopBtn.classList.remove('opacity-100', 'visible');
+            }
+        };
+
+        // Al hacer clic, vuelve al inicio de la pÃ¡gina con animaciÃ³n suave
+        scrollTopBtn.onclick = function(e) {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        };
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

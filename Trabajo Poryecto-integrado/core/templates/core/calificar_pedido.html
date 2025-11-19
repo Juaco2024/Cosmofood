@@ -1,0 +1,283 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Evaluar Pedido - Cosmofood{% endblock %}
+
+{% block extra_css %}
+<style>
+    .star-rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .star-rating input {
+        display: none;
+    }
+    
+    .star-rating label {
+        cursor: pointer;
+        font-size: 3rem;
+        color: #d1d5db;
+        transition: all 0.2s ease;
+    }
+    
+    .star-rating label:hover,
+    .star-rating label:hover ~ label,
+    .star-rating input:checked ~ label {
+        color: #fbbf24;
+        transform: scale(1.1);
+    }
+    
+    .star-rating label:hover {
+        transform: scale(1.2);
+    }
+    
+    /* Estilos para la sección de reclamo */
+    .reclamo-section {
+        display: none;
+        animation: slideDown 0.3s ease-out;
+    }
+    
+    .reclamo-section.show {
+        display: block;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-12">
+    <div class="max-w-2xl mx-auto">
+        <!-- Header -->
+        <div class="mb-8">
+            <a href="{% url 'mis_pedidos' %}" class="text-gray-600 hover:text-primary transition">
+                <i class="fas fa-arrow-left mr-2"></i>Volver a Mis Pedidos
+            </a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <!-- Header del formulario -->
+            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 text-white p-6">
+                <h1 class="text-3xl font-bold flex items-center gap-3">
+                    <i class="fas fa-star"></i>
+                    Evalúa tu Pedido
+                </h1>
+                <p class="mt-2">Pedido #{{ pedido.numero_pedido }}</p>
+            </div>
+
+            <div class="p-8">
+                <!-- Información del pedido -->
+                <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500 p-4 mb-6 rounded">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="{% if pedido.estado == 'entregado' %}bg-green-500{% else %}bg-red-500{% endif %} text-white w-12 h-12 rounded-full flex items-center justify-center">
+                            <i class="fas {% if pedido.estado == 'entregado' %}fa-check{% else %}fa-times{% endif %} text-2xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold {% if pedido.estado == 'entregado' %}text-green-800{% else %}text-red-800{% endif %}">
+                                {% if pedido.estado == 'entregado' %}
+                                    ¡Pedido Entregado!
+                                {% else %}
+                                    Pedido Cancelado
+                                {% endif %}
+                            </h3>
+                            <p class="text-sm {% if pedido.estado == 'entregado' %}text-green-600{% else %}text-red-600{% endif %}">
+                                {{ pedido.fecha_entrega|date:"d/m/Y H:i"|default:pedido.fecha_creacion|date:"d/m/Y H:i" }}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="text-sm text-gray-700 mt-3">
+                        <p class="font-semibold mb-2">Productos:</p>
+                        <ul class="space-y-1">
+                            {% for detalle in pedido.detalles.all %}
+                                <li class="flex items-center gap-2">
+                                    <i class="fas fa-check-circle {% if pedido.estado == 'entregado' %}text-green-500{% else %}text-gray-400{% endif %}"></i>
+                                    {{ detalle.cantidad }}x {{ detalle.producto.nombre }}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Formulario de evaluación -->
+                <form method="post" id="calificacion-form" class="space-y-8">
+                    {% csrf_token %}
+                    
+                    <!-- Calificación con estrellas -->
+                    <div class="text-center">
+                        <h3 class="text-2xl font-bold text-gray-800 mb-4">
+                            ¿Cómo calificarías tu experiencia?
+                        </h3>
+                        
+                        <div class="star-rating mb-4">
+                            {% for i in "54321" %}
+                                <input type="radio" name="calificacion" value="{{ i }}" id="star{{ i }}" required>
+                                <label for="star{{ i }}">
+                                    <i class="fas fa-star"></i>
+                                </label>
+                            {% endfor %}
+                        </div>
+                        
+                        <p id="rating-text" class="text-lg font-semibold text-gray-600 mb-6 h-8">
+                            Selecciona las estrellas
+                        </p>
+                    </div>
+
+                    <!-- Aspectos a evaluar -->
+                    <div class="grid md:grid-cols-3 gap-4">
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <i class="fas fa-hamburger text-3xl text-primary mb-2"></i>
+                            <p class="font-semibold text-gray-700">Calidad de la comida</p>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <i class="fas fa-shipping-fast text-3xl text-primary mb-2"></i>
+                            <p class="font-semibold text-gray-700">Tiempo de entrega</p>
+                        </div>
+                        <div class="text-center p-4 bg-gray-50 rounded-lg">
+                            <i class="fas fa-user-tie text-3xl text-primary mb-2"></i>
+                            <p class="font-semibold text-gray-700">Servicio al cliente</p>
+                        </div>
+                    </div>
+
+                    <!-- Comentario opcional -->
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-2">
+                            <i class="fas fa-comment text-primary mr-2"></i>
+                            Comentario (Opcional)
+                        </label>
+                        {{ form.comentario }}
+                        <p class="text-sm text-gray-500 mt-1">
+                            Cuéntanos más sobre tu experiencia
+                        </p>
+                    </div>
+
+                    <!-- ✅✅✅ NUEVA SECCIÓN: CHECKBOX PARA RECLAMO ✅✅✅ -->
+                    <div class="bg-red-50 border-2 border-red-200 rounded-lg p-6">
+                        <div class="flex items-start gap-3">
+                            <div class="flex items-center h-5">
+                                {{ form.tiene_reclamo }}
+                            </div>
+                            <div class="flex-1">
+                                <label for="tiene_reclamo" class="font-bold text-red-800 cursor-pointer">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i>
+                                    {{ form.tiene_reclamo.label }}
+                                </label>
+                                <p class="text-sm text-red-600 mt-1">
+                                    Si tuviste algún problema con tu pedido, márcalo aquí y descríbelo abajo
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- ✅ SECCIÓN DE RECLAMO (se muestra al marcar el checkbox) -->
+                        <div id="reclamo-section" class="reclamo-section mt-6 pt-6 border-t-2 border-red-200">
+                            <h4 class="font-bold text-red-800 mb-4 flex items-center gap-2">
+                                <i class="fas fa-clipboard-list"></i>
+                                Información del Reclamo
+                            </h4>
+                            
+                            <!-- Motivo del reclamo -->
+                            <div class="mb-4">
+                                <label for="{{ form_reclamo.motivo.id_for_label }}" class="block text-sm font-bold text-gray-700 mb-2">
+                                    {{ form_reclamo.motivo.label }}
+                                </label>
+                                {{ form_reclamo.motivo }}
+                            </div>
+
+                            <!-- Descripción del reclamo -->
+                            <div class="mb-4">
+                                <label for="{{ form_reclamo.descripcion.id_for_label }}" class="block text-sm font-bold text-gray-700 mb-2">
+                                    {{ form_reclamo.descripcion.label }}
+                                </label>
+                                {{ form_reclamo.descripcion }}
+                            </div>
+
+                            <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded">
+                                <p class="text-sm text-yellow-800">
+                                    <i class="fas fa-info-circle mr-2"></i>
+                                    <strong>Tu reclamo será enviado directamente al equipo administrativo.</strong>
+                                    Recibirás una respuesta en un máximo de 24-48 horas.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mensaje motivacional -->
+                    <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
+                        <p class="text-sm text-blue-700">
+                            <i class="fas fa-heart text-red-500 mr-2"></i>
+                            <strong>Tu opinión es muy importante</strong> para nosotros. 
+                            Nos ayuda a mejorar nuestro servicio y a garantizar la mejor experiencia para todos nuestros clientes.
+                        </p>
+                    </div>
+
+                    <!-- Botones -->
+                    <div class="flex gap-4">
+                        <a href="{% url 'mis_pedidos' %}" 
+                           class="flex-1 border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold text-center py-3 rounded-lg transition duration-200">
+                            <i class="fas fa-times mr-2"></i>
+                            Omitir
+                        </a>
+                        <button type="submit" 
+                                class="flex-1 bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-200 shadow-lg">
+                            <i class="fas fa-paper-plane mr-2"></i>
+                            Enviar Evaluación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Textos descriptivos para cada calificación
+    const ratingTexts = {
+        '1': '😞 Muy insatisfecho',
+        '2': '😕 Insatisfecho',
+        '3': '😐 Regular',
+        '4': '😊 Satisfecho',
+        '5': '😍 ¡Excelente!'
+    };
+
+    // Actualizar texto cuando se selecciona una estrella
+    const radioButtons = document.querySelectorAll('input[name="calificacion"]');
+    const ratingText = document.getElementById('rating-text');
+    
+    radioButtons.forEach(radio => {
+        radio.addEventListener('change', function() {
+            ratingText.textContent = ratingTexts[this.value];
+            ratingText.style.color = this.value >= 4 ? '#10b981' : this.value >= 3 ? '#f59e0b' : '#ef4444';
+        });
+    });
+
+    // ✅ MOSTRAR/OCULTAR SECCIÓN DE RECLAMO
+    const checkboxReclamo = document.getElementById('tiene_reclamo');
+    const reclamoSection = document.getElementById('reclamo-section');
+
+    checkboxReclamo.addEventListener('change', function() {
+        if (this.checked) {
+            reclamoSection.classList.add('show');
+            // Hacer que los campos del reclamo sean requeridos
+            document.querySelector('select[name="motivo"]').required = true;
+            document.querySelector('textarea[name="descripcion"]').required = true;
+        } else {
+            reclamoSection.classList.remove('show');
+            // Quitar requerimiento si no está marcado
+            document.querySelector('select[name="motivo"]').required = false;
+            document.querySelector('textarea[name="descripcion"]').required = false;
+        }
+    });
+</script>
+{% endblock %}

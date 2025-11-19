@@ -1,0 +1,172 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Mis Reclamos - Cosmofood{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-12">
+    <h1 class="text-4xl font-bold mb-8 text-gray-800">
+        <i class="fas fa-exclamation-circle text-primary"></i> Mis Reclamos
+    </h1>
+
+    {% if not reclamos %}
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-8 text-center">
+                <div class="text-blue-500 text-6xl mb-4">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <h4 class="text-2xl font-bold text-blue-800 mb-3">Â¡No tienes reclamos!</h4>
+                <p class="text-blue-700 mb-6">No has realizado ningÃºn reclamo. Si tienes algÃºn problema con un pedido entregado, puedes reportarlo desde "Mis Pedidos".</p>
+                <a href="{% url 'mis_pedidos' %}" class="inline-block bg-primary hover:bg-primary-dark text-white font-semibold px-8 py-3 rounded-lg transition duration-200">
+                    <i class="fas fa-shopping-bag mr-2"></i> Ir a Mis Pedidos
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="space-y-4">
+            {% for reclamo in reclamos %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- Header del Reclamo -->
+                    <div class="bg-gradient-to-r from-red-500 to-orange-500 text-white p-4">
+                        <div class="flex flex-wrap justify-between items-center gap-4">
+                            <div>
+                                <h3 class="text-xl font-bold">Reclamo #{{ reclamo.id }}</h3>
+                                <p class="text-red-100">Pedido #{{ reclamo.pedido.numero_pedido }}</p>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="px-4 py-2 font-semibold rounded-full text-sm
+                                    {% if reclamo.estado == 'nuevo' %}bg-yellow-100 text-yellow-800
+                                    {% elif reclamo.estado == 'en_revision' %}bg-blue-100 text-blue-800
+                                    {% elif reclamo.estado == 'respondido' %}bg-purple-100 text-purple-800
+                                    {% elif reclamo.estado == 'resuelto' %}bg-green-100 text-green-800
+                                    {% elif reclamo.estado == 'cerrado' %}bg-gray-100 text-gray-800
+                                    {% endif %}">
+                                    {{ reclamo.get_estado_display }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contenido del Reclamo -->
+                    <div class="p-6">
+                        <div class="grid md:grid-cols-2 gap-6 mb-6">
+                            <!-- InformaciÃ³n del Reclamo -->
+                            <div>
+                                <h4 class="font-bold text-lg mb-3 text-gray-800">
+                                    <i class="fas fa-info-circle text-primary mr-2"></i>InformaciÃ³n del Reclamo
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-calendar text-gray-400 mt-1"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-700">Fecha:</span>
+                                            <span class="ml-2">{{ reclamo.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-tag text-gray-400 mt-1"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-700">Motivo:</span>
+                                            <span class="ml-2">{{ reclamo.get_motivo_display }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- InformaciÃ³n del Pedido -->
+                            <div>
+                                <h4 class="font-bold text-lg mb-3 text-gray-800">
+                                    <i class="fas fa-shopping-bag text-primary mr-2"></i>Datos del Pedido
+                                </h4>
+                                <div class="space-y-2 text-sm">
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-clock text-gray-400 mt-1"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-700">Entregado:</span>
+                                            <span class="ml-2">{{ reclamo.pedido.fecha_entrega|date:"d/m/Y H:i" }}</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-start gap-2">
+                                        <i class="fas fa-dollar-sign text-gray-400 mt-1"></i>
+                                        <div>
+                                            <span class="font-semibold text-gray-700">Total:</span>
+                                            <span class="ml-2">${{ reclamo.pedido.total|floatformat:0 }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- DescripciÃ³n del Problema -->
+                        <div class="bg-gray-50 p-4 rounded-lg mb-4">
+                            <h5 class="font-bold text-gray-800 mb-2">
+                                <i class="fas fa-comment-dots text-primary mr-2"></i>Tu DescripciÃ³n:
+                            </h5>
+                            <p class="text-gray-700">{{ reclamo.descripcion }}</p>
+                        </div>
+
+                        <!-- Respuesta del Admin (si existe) -->
+                        {% if reclamo.respuesta %}
+                        <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg mb-4">
+                            <div class="flex items-start gap-3">
+                                <i class="fas fa-reply text-green-500 text-2xl mt-1"></i>
+                                <div class="flex-1">
+                                    <h5 class="font-bold text-green-800 mb-2">Respuesta de Cosmofood:</h5>
+                                    <p class="text-green-700 mb-2">{{ reclamo.respuesta }}</p>
+                                    {% if reclamo.fecha_respuesta %}
+                                        <small class="text-green-600">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            Respondido el {{ reclamo.fecha_respuesta|date:"d/m/Y H:i" }}
+                                            {% if reclamo.atendido_por %}
+                                                por {{ reclamo.atendido_por.username }}
+                                            {% endif %}
+                                        </small>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CalificaciÃ³n de la AtenciÃ³n (si estÃ¡ resuelto/cerrado y no calificado) -->
+                        {% if reclamo.puede_ser_calificado %}
+                        <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg">
+                            <p class="text-blue-700 mb-3">
+                                <i class="fas fa-star text-yellow-500 mr-2"></i>
+                                <strong>Â¿CÃ³mo calificarÃ­as la atenciÃ³n recibida?</strong>
+                            </p>
+                            <a href="{% url 'detalle_reclamo_cliente' reclamo.pk %}" 
+                               class="inline-block bg-blue-500 hover:bg-blue-600 text-white font-semibold px-6 py-2 rounded-lg transition duration-200">
+                                <i class="fas fa-star mr-2"></i>Calificar AtenciÃ³n
+                            </a>
+                        </div>
+                        {% elif reclamo.calificacion_atencion %}
+                        <div class="bg-yellow-50 p-3 rounded-lg">
+                            <p class="text-yellow-800 text-sm">
+                                <i class="fas fa-check-circle text-yellow-600 mr-2"></i>
+                                Has calificado esta atenciÃ³n con <strong>{{ reclamo.calificacion_atencion }}</strong> estrellas
+                            </p>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <!-- Sin Respuesta AÃºn -->
+                        <div class="bg-yellow-50 border-l-4 border-yellow-500 p-4 rounded-lg">
+                            <p class="text-yellow-700">
+                                <i class="fas fa-hourglass-half text-yellow-500 mr-2"></i>
+                                <strong>Tu reclamo estÃ¡ siendo revisado.</strong> RecibirÃ¡s una respuesta pronto.
+                            </p>
+                        </div>
+                        {% endif %}
+
+                        <!-- BotÃ³n Ver Detalles -->
+                        <div class="mt-4">
+                            <a href="{% url 'detalle_reclamo_cliente' reclamo.pk %}" 
+                               class="inline-block bg-primary hover:bg-primary-dark text-white font-semibold px-6 py-3 rounded-lg transition duration-200">
+                                <i class="fas fa-eye mr-2"></i>Ver Detalles Completos
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

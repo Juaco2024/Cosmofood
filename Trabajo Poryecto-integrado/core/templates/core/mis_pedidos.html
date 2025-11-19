@@ -1,0 +1,242 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Mis Pedidos - Cosmofood{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-12">
+    <h1 class="text-4xl font-bold mb-8 text-gray-800">
+        <i class="fas fa-history text-primary"></i> Mis Pedidos
+    </h1>
+
+    {% if not pedidos %}
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-8 text-center">
+                <div class="text-blue-500 text-6xl mb-4">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h4 class="text-2xl font-bold text-blue-800 mb-3">Aún no tienes pedidos</h4>
+                <p class="text-blue-700 mb-6">Parece que todavía no has realizado ninguna compra. ¡Explora nuestro menú y haz tu primer pedido!</p>
+                <a href="{% url 'catalogo_productos' %}" class="inline-block bg-primary hover:bg-primary-dark text-white font-semibold px-8 py-3 rounded-lg transition duration-200">
+                    <i class="fas fa-utensils mr-2"></i> Ir al Menú
+                </a>
+            </div>
+        </div>
+    {% else %}
+        <div class="space-y-4">
+            {% for pedido in pedidos %}
+                <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+                    <!-- Header del Pedido -->
+                    <div class="bg-gray-50 p-4 border-b cursor-pointer hover:bg-gray-100 transition" 
+                         onclick="document.getElementById('pedido-{{ pedido.id }}').classList.toggle('hidden')">
+                        <div class="flex flex-wrap justify-between items-center gap-4">
+                            <div class="flex items-center gap-3">
+                                <i class="fas fa-chevron-down text-gray-400"></i>
+                                <span class="font-bold text-lg text-gray-800">Pedido #{{ pedido.numero_pedido }}</span>
+                            </div>
+                            <span class="text-gray-600">{{ pedido.fecha_creacion|date:"d/m/Y H:i" }}</span>
+                            
+                            <span class="px-3 py-1 font-semibold rounded-full text-sm
+                            {% if pedido.estado == 'pendiente' %}bg-red-100 text-red-800
+                            {% elif pedido.estado == 'confirmado' %}bg-blue-100 text-blue-800
+                            {% elif pedido.estado == 'en_preparacion' %}bg-purple-100 text-purple-800
+                            {% elif pedido.estado == 'listo' %}bg-green-100 text-green-800
+                            {% elif pedido.estado == 'en_camino' %}bg-indigo-100 text-indigo-800
+                            {% elif pedido.estado == 'entregado' %}bg-green-500 text-white
+                            {% elif pedido.estado == 'cancelado' %}bg-red-100 text-red-800
+                            {% endif %}">
+                            {{ pedido.get_estado_display }}
+                        </span>
+                            <span class="font-bold text-xl text-primary">${{ pedido.total|floatformat:0 }}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Contenido Desplegable del Pedido -->
+                    <div id="pedido-{{ pedido.id }}" class="{% if not forloop.first %}hidden{% endif %} p-6">
+                        <div class="grid lg:grid-cols-3 gap-6">
+                            <!-- Columna 1: Detalles del Pedido -->
+                            <div class="lg:col-span-2">
+                                <h5 class="font-bold text-lg mb-4 text-gray-800">
+                                    <i class="fas fa-box text-primary mr-2"></i>Detalles del Pedido
+                                </h5>
+                                <div class="space-y-3">
+                                    {% for detalle in pedido.detalles.all %}
+                                        <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                            <div class="flex items-center gap-4">
+                                                {% if detalle.producto.imagen %}
+                                                    <img src="{{ detalle.producto.imagen.url }}" 
+                                                         alt="{{ detalle.producto.nombre }}" 
+                                                         class="w-16 h-16 object-cover rounded-lg">
+                                                {% else %}
+                                                    <div class="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                                                        <i class="fas fa-image text-gray-400 text-2xl"></i>
+                                                    </div>
+                                                {% endif %}
+                                                <div>
+                                                    <p class="font-semibold text-gray-800">{{ detalle.cantidad }}x {{ detalle.producto.nombre }}</p>
+                                                    <p class="text-sm text-gray-500">Precio unitario: ${{ detalle.precio_unitario|floatformat:0 }}</p>
+                                                </div>
+                                            </div>
+                                            <span class="font-bold text-primary">${{ detalle.subtotal|floatformat:0 }}</span>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+
+                                <!-- Información de Entrega -->
+                                <div class="mt-6 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-lg">
+                                    <h6 class="font-bold text-gray-800 mb-3">
+                                        <i class="fas fa-info-circle text-blue-500 mr-2"></i>Información de Entrega
+                                    </h6>
+                                    <div class="space-y-2 text-sm">
+                                        <div class="flex items-start gap-2">
+                                            <i class="fas fa-shopping-bag text-blue-500 mt-1"></i>
+                                            <div>
+                                                <span class="font-semibold text-gray-700">Tipo:</span>
+                                                <span class="ml-2">{{ pedido.get_tipo_orden_display }}</span>
+                                            </div>
+                                        </div>
+
+                                        {% if pedido.tipo_orden == 'delivery' and pedido.direccion_entrega %}
+                                        <div class="flex items-start gap-2">
+                                            <i class="fas fa-map-marker-alt text-blue-500 mt-1"></i>
+                                            <div>
+                                                <span class="font-semibold text-gray-700">Dirección:</span>
+                                                <span class="ml-2">{{ pedido.direccion_entrega }}</span>
+                                                {% if pedido.referencia_direccion %}
+                                                    <br><span class="ml-6 text-gray-600 italic">Ref: {{ pedido.referencia_direccion }}</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        {% endif %}
+
+                                        {% if pedido.tipo_orden == 'delivery' %}
+                                            {% if pedido.repartidor %}
+                                                <div class="flex items-start gap-2 p-3 bg-white rounded-lg mt-2">
+                                                    <i class="fas fa-motorcycle text-primary text-xl mt-1"></i>
+                                                    <div>
+                                                        <span class="font-semibold text-gray-700">Tu Repartidor:</span>
+                                                        <div class="ml-2 mt-1">
+                                                            <p class="font-bold text-gray-800">
+                                                                {{ pedido.repartidor.usuario.get_full_name|default:pedido.repartidor.usuario.username }}
+                                                            </p>
+                                                            {% if pedido.repartidor.vehiculo %}
+                                                                <p class="text-sm text-gray-600">
+                                                                    <i class="fas fa-car text-gray-400 mr-1"></i>
+                                                                    {{ pedido.repartidor.vehiculo }}
+                                                                    {% if pedido.repartidor.placa_vehiculo %}
+                                                                        - {{ pedido.repartidor.placa_vehiculo }}
+                                                                    {% endif %}
+                                                                </p>
+                                                            {% endif %}
+                                                            {% if pedido.repartidor.usuario.telefono %}
+                                                                <p class="text-sm text-gray-600 mt-1">
+                                                                    <i class="fas fa-phone text-gray-400 mr-1"></i>
+                                                                    <a href="tel:{{ pedido.repartidor.usuario.telefono }}" 
+                                                                       class="text-blue-600 hover:underline">
+                                                                        {{ pedido.repartidor.usuario.telefono }}
+                                                                    </a>
+                                                                </p>
+                                                            {% endif %}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            {% else %}
+                                                <div class="flex items-start gap-2 p-3 bg-yellow-50 rounded-lg mt-2">
+                                                    <i class="fas fa-hourglass-half text-yellow-600 mt-1"></i>
+                                                    <div>
+                                                        <span class="font-semibold text-yellow-800">Repartidor:</span>
+                                                        <p class="text-sm text-yellow-700 ml-2">Asignación pendiente</p>
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        {% endif %}
+
+                                        {% if pedido.notas_cliente %}
+                                        <div class="flex items-start gap-2 mt-2">
+                                            <i class="fas fa-comment text-blue-500 mt-1"></i>
+                                            <div>
+                                                <span class="font-semibold text-gray-700">Tus notas:</span>
+                                                <p class="ml-2 text-gray-600 italic">"{{ pedido.notas_cliente }}"</p>
+                                            </div>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Columna 2: Resumen -->
+                            <div class="lg:col-span-1">
+                                <h5 class="font-bold text-lg mb-4 text-gray-800">
+                                    <i class="fas fa-file-invoice text-primary mr-2"></i>Resumen
+                                </h5>
+                                <div class="bg-gray-50 rounded-lg p-4 space-y-3">
+                                    <div class="flex justify-between text-gray-700">
+                                        <span>Subtotal:</span>
+                                        <span>${{ pedido.subtotal|floatformat:0 }}</span>
+                                    </div>
+                                    <div class="flex justify-between text-gray-700">
+                                        <span>Envío:</span>
+                                        <span>${{ pedido.costo_envio|floatformat:0 }}</span>
+                                    </div>
+                                    <hr class="border-gray-300">
+                                    <div class="flex justify-between font-bold text-lg">
+                                        <span>Total:</span>
+                                        <span class="text-primary">${{ pedido.total|floatformat:0 }}</span>
+                                    </div>
+                                    <div class="pt-3 border-t border-gray-300">
+                                        <p class="text-sm text-gray-600">
+                                            <i class="fas fa-credit-card text-gray-400 mr-2"></i>
+                                            <span class="font-semibold">Pago:</span> {{ pedido.metodo_pago.nombre }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- ✅✅✅ BOTONES DE ACCIÓN - AQUÍ ESTÁ EL CAMBIO PRINCIPAL ✅✅✅ -->
+                                <div class="mt-4 space-y-2">
+                                    <!-- Botón Rastrear Pedido (para pedidos activos) -->
+                                    {% if pedido.estado not in 'entregado,cancelado' %}
+                                    <button onclick="alert('Función de rastreo en desarrollo')" 
+                                            class="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2 rounded-lg transition duration-200">
+                                        <i class="fas fa-map-marked-alt mr-2"></i>Rastrear Pedido
+                                    </button>
+                                    
+                                    <a href="#" class="block w-full border-2 border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold text-center py-2 rounded-lg transition duration-200">
+                                        <i class="fas fa-phone mr-2"></i>Contactar Soporte
+                                    </a>
+                                    {% endif %}
+
+                                    <!-- ✅ BOTÓN EVALUAR PEDIDO - Solo para Entregado o Cancelado -->
+                                    {% if pedido.estado == 'entregado' or pedido.estado == 'cancelado' %}
+                                        {% if pedido.calificacion %}
+                                            <!-- Si ya fue calificado, mostrar la calificación -->
+                                            <div class="w-full bg-green-50 border-2 border-green-500 text-green-800 font-semibold py-3 rounded-lg text-center">
+                                                <i class="fas fa-check-circle mr-2"></i>
+                                                Ya evaluaste este pedido
+                                                <div class="mt-2 flex justify-center gap-1">
+                                                    {% for i in "12345" %}
+                                                        {% if forloop.counter <= pedido.calificacion %}
+                                                            <i class="fas fa-star text-yellow-400"></i>
+                                                        {% else %}
+                                                            <i class="far fa-star text-gray-300"></i>
+                                                        {% endif %}
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <!-- Botón para evaluar -->
+                                            <a href="{% url 'calificar_pedido' pedido.pk %}" 
+                                               class="block w-full bg-gradient-to-r from-yellow-400 to-orange-500 hover:from-yellow-500 hover:to-orange-600 text-white font-semibold py-3 rounded-lg transition duration-200 text-center shadow-lg">
+                                                <i class="fas fa-star mr-2"></i>Evaluar Pedido
+                                            </a>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

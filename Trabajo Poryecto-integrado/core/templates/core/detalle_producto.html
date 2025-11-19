@@ -1,0 +1,266 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}{{ producto.nombre }} - Cosmofood{% endblock %}
+
+{% block extra_css %}
+<style>
+    .star-rating {
+        display: inline-flex;
+        gap: 5px;
+        font-size: 1.5rem;
+    }
+    .star-filled { color: #fbbf24; }
+    .star-empty { color: #d1d5db; }
+    
+    .opinion-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+    }
+    .opinion-card:hover {
+        border-left-color: var(--bs-primary);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    
+    .calificacion-bar {
+        height: 8px;
+        background: #e5e7eb;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .calificacion-bar-fill {
+        height: 100%;
+        background: #fbbf24;
+        transition: width 0.3s ease;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-12">
+    <!-- Breadcrumb -->
+    <nav class="mb-6 text-sm">
+        <ol class="flex items-center gap-2 text-gray-600">
+            <li><a href="{% url 'home' %}" class="hover:text-primary">Inicio</a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li><a href="{% url 'catalogo_productos' %}" class="hover:text-primary">Productos</a></li>
+            <li><i class="fas fa-chevron-right text-xs"></i></li>
+            <li class="text-gray-800 font-semibold">{{ producto.nombre }}</li>
+        </ol>
+    </nav>
+
+    <div class="grid lg:grid-cols-2 gap-12">
+        <!-- Columna Izquierda: Imagen -->
+        <div>
+            <div class="bg-white rounded-2xl shadow-xl p-8 sticky top-24">
+                {% if producto.imagen %}
+                    <img src="{{ producto.imagen.url }}" 
+                         alt="{{ producto.nombre }}" 
+                         class="w-full h-96 object-cover rounded-xl">
+                {% else %}
+                    <div class="w-full h-96 bg-gray-200 rounded-xl flex items-center justify-center">
+                        <i class="fas fa-image text-gray-400 text-6xl"></i>
+                    </div>
+                {% endif %}
+                
+                <!-- Stock Badge -->
+                <div class="mt-4 text-center">
+                    {% if producto.stock > 10 %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
+                            <i class="fas fa-check-circle"></i>
+                            Disponible ({{ producto.stock }} unidades)
+                        </span>
+                    {% elif producto.stock > 0 %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                            <i class="fas fa-exclamation-circle"></i>
+                            Pocas unidades ({{ producto.stock }})
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-full text-sm font-semibold">
+                            <i class="fas fa-times-circle"></i>
+                            Agotado
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Columna Derecha: Información -->
+        <div>
+            <!-- Título y Categoría -->
+            <div class="mb-6">
+                {% if producto.categoria %}
+                    <span class="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm font-semibold rounded-full mb-3">
+                        <i class="fas fa-tag mr-1"></i>{{ producto.categoria.nombre }}
+                    </span>
+                {% endif %}
+                <h1 class="text-4xl font-bold text-gray-800 mb-4">{{ producto.nombre }}</h1>
+                
+                <!-- Calificación Promedio -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="star-rating">
+                        {% for i in "12345" %}
+                            {% if i|add:"0" <= producto.calificacion_promedio %}
+                                <i class="fas fa-star star-filled"></i>
+                            {% else %}
+                                <i class="far fa-star star-empty"></i>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                    <span class="text-lg font-semibold text-gray-700">
+                        {{ producto.calificacion_promedio|floatformat:1 }}
+                    </span>
+                    <span class="text-gray-500">
+                        ({{ producto.total_opiniones }} opinión{{ producto.total_opiniones|pluralize:"es" }})
+                    </span>
+                </div>
+            </div>
+
+            <!-- Precio -->
+            <div class="bg-gradient-to-r from-primary to-secondary text-white p-6 rounded-xl mb-6">
+                <p class="text-sm mb-2">Precio</p>
+                <p class="text-5xl font-bold">${{ producto.precio|floatformat:0 }}</p>
+            </div>
+
+            <!-- Descripción -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-3">
+                    <i class="fas fa-info-circle text-primary mr-2"></i>Descripción
+                </h3>
+                <p class="text-gray-600 leading-relaxed">{{ producto.descripcion }}</p>
+            </div>
+
+            <!-- Botones de Acción -->
+            <div class="space-y-3">
+                {% if user.is_authenticated %}
+                    {% if producto.stock > 0 %}
+                        <form action="{% url 'agregar_al_carrito' %}" method="post">
+                            {% csrf_token %}
+                            <input type="hidden" name="product_id" value="{{ producto.id }}">
+                            <button type="submit" 
+                                    class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-xl transition duration-200 text-lg flex items-center justify-center gap-2 shadow-lg">
+                                <i class="fas fa-cart-plus"></i>
+                                Agregar al Carrito
+                            </button>
+                        </form>
+                    {% else %}
+                        <button disabled 
+                                class="w-full bg-gray-300 text-gray-600 font-bold py-4 rounded-xl cursor-not-allowed text-lg">
+                            <i class="fas fa-times-circle mr-2"></i>
+                            Producto Agotado
+                        </button>
+                    {% endif %}
+                    
+                    {% if puede_opinar %}
+                        <a href="{% url 'opinar_producto' producto.pk %}" 
+                           class="block w-full border-2 border-yellow-500 hover:bg-yellow-50 text-yellow-600 font-bold py-4 rounded-xl transition duration-200 text-lg text-center">
+                            <i class="fas fa-star mr-2"></i>
+                            Opinar sobre este Producto
+                        </a>
+                    {% endif %}
+                {% else %}
+                    <a href="{% url 'login' %}" 
+                       class="block w-full bg-gray-400 hover:bg-gray-500 text-white font-bold py-4 rounded-xl transition duration-200 text-lg text-center">
+                        <i class="fas fa-sign-in-alt mr-2"></i>
+                        Inicia Sesión para Comprar
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Sección de Opiniones -->
+    <div class="mt-16">
+        <h2 class="text-3xl font-bold text-gray-800 mb-8">
+            <i class="fas fa-comments text-primary mr-3"></i>
+            Opiniones de Clientes
+        </h2>
+
+        {% if producto.total_opiniones > 0 %}
+            <!-- Resumen de Calificaciones -->
+            <div class="bg-white rounded-xl shadow-lg p-8 mb-8">
+                <div class="grid md:grid-cols-2 gap-8">
+                    <!-- Promedio General -->
+                    <div class="text-center">
+                        <p class="text-6xl font-bold text-gray-800 mb-2">
+                            {{ producto.calificacion_promedio|floatformat:1 }}
+                        </p>
+                        <div class="star-rating justify-center mb-2">
+                            {% for i in "12345" %}
+                                {% if i|add:"0" <= producto.calificacion_promedio %}
+                                    <i class="fas fa-star star-filled"></i>
+                                {% else %}
+                                    <i class="far fa-star star-empty"></i>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        <p class="text-gray-600">Basado en {{ producto.total_opiniones }} opinión{{ producto.total_opiniones|pluralize:"es" }}</p>
+                    </div>
+
+                    <!-- Distribución de Estrellas -->
+                    <div class="space-y-2">
+                        {% for dist in distribucion_calificaciones %}
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista de Opiniones -->
+            <div class="space-y-4">
+                {% for opinion in opiniones %}
+                    <div class="opinion-card bg-white rounded-xl shadow p-6">
+                        <div class="flex items-start gap-4">
+                            <!-- Avatar -->
+                            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-secondary text-white flex items-center justify-center text-xl font-bold flex-shrink-0">
+                                {{ opinion.cliente.username|slice:":1"|upper }}
+                            </div>
+                            
+                            <!-- Contenido -->
+                            <div class="flex-1">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div>
+                                        <p class="font-bold text-gray-800">{{ opinion.cliente.get_full_name|default:opinion.cliente.username }}</p>
+                                        <p class="text-sm text-gray-500">{{ opinion.fecha_creacion|date:"d M Y" }}</p>
+                                    </div>
+                                    <div class="star-rating">
+                                        {% for i in "12345" %}
+                                            {% if i|add:"0" <= opinion.calificacion %}
+                                                <i class="fas fa-star star-filled"></i>
+                                            {% else %}
+                                                <i class="far fa-star star-empty"></i>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                                
+                                {% if opinion.comentario %}
+                                    <p class="text-gray-700 leading-relaxed">{{ opinion.comentario }}</p>
+                                {% endif %}
+                                
+                                {% if ha_comprado and opinion.cliente == user %}
+                                    <div class="mt-3">
+                                        <span class="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full">
+                                            <i class="fas fa-check-circle"></i>
+                                            Tu opinión
+                                        </span>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="bg-blue-50 border-l-4 border-blue-500 rounded-lg p-8 text-center">
+                <i class="fas fa-comment-slash text-blue-500 text-5xl mb-4"></i>
+                <h4 class="text-xl font-bold text-blue-800 mb-2">
+                    Aún no hay opiniones
+                </h4>
+                <p class="text-blue-700">
+                    Sé el primero en opinar sobre este producto después de comprarlo.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

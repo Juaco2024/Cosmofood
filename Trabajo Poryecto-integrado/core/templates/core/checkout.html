@@ -1,0 +1,361 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Finalizar Compra - Cosmofood{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Estilos personalizados */
+    .tipo-orden-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    .tipo-orden-card:hover {
+        border-color: #ff6b35;
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.2);
+        transform: translateY(-2px);
+    }
+    .tipo-orden-card.selected {
+        border-color: #ff6b35;
+        background: linear-gradient(135deg, #fff5f2 0%, #ffffff 100%);
+        box-shadow: 0 4px 12px rgba(255, 107, 53, 0.3);
+    }
+    .tipo-orden-icon {
+        font-size: 2.5rem;
+        color: #ff6b35;
+        margin-bottom: 0.5rem;
+    }
+    .direccion-fields {
+        display: none;
+        animation: fadeIn 0.3s ease;
+    }
+    .direccion-fields.show {
+        display: block;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .resumen-item {
+        padding: 1rem;
+        background: #f9fafb;
+        border-radius: 8px;
+        margin-bottom: 0.75rem;
+        border-left: 4px solid #ff6b35;
+    }
+    .metodo-pago-card {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+    .metodo-pago-card:hover {
+        border-color: #ff6b35;
+        transform: translateY(-2px);
+    }
+    .metodo-pago-card.selected {
+        border-color: #ff6b35;
+        background: #fff5f2;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 my-12">
+    <div class="mb-8">
+        <a href="{% url 'ver_carrito' %}" class="text-gray-600 hover:text-primary transition">
+            <i class="fas fa-arrow-left mr-2"></i>Volver al carrito
+        </a>
+    </div>
+
+    <h1 class="text-4xl font-bold mb-2 text-gray-800">
+        <i class="fas fa-shopping-bag text-primary"></i> Finalizar Compra
+    </h1>
+    <p class="text-gray-600 mb-8">Completa los datos para confirmar tu pedido</p>
+
+    <form method="post" id="checkout-form">
+        {% csrf_token %}
+        
+        <div class="grid lg:grid-cols-3 gap-8">
+            <!-- Columna Izquierda: Formulario -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- Paso 1: Datos de Contacto -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold mr-3">1</div>
+                        <h2 class="text-2xl font-bold text-gray-800">Datos de Contacto</h2>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-user text-primary"></i> Nombre Completo
+                            </label>
+                            {{ form.nombre_completo }}
+                            {% if form.nombre_completo.errors %}
+                                <p class="text-red-600 text-sm mt-1">{{ form.nombre_completo.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-phone text-primary"></i> TelÃ©fono
+                            </label>
+                            {{ form.telefono }}
+                            {% if form.telefono.errors %}
+                                <p class="text-red-600 text-sm mt-1">{{ form.telefono.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Paso 2: Tipo de Entrega -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center mb-6">
+                        <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold mr-3">2</div>
+                        <h2 class="text-2xl font-bold text-gray-800">Tipo de Entrega</h2>
+                    </div>
+                    
+                    <div class="grid md:grid-cols-2 gap-4">
+                        {% for value, label in form.tipo_orden.field.choices %}
+                        <div class="tipo-orden-card" data-value="{{ value }}">
+                            <input type="radio" name="tipo_orden" value="{{ value }}" id="tipo_{{ value }}" 
+                                   class="hidden" {% if forloop.first %}checked{% endif %}>
+                            <label for="tipo_{{ value }}" class="cursor-pointer block">
+                                <div class="text-center">
+                                    <i class="fas {% if value == 'delivery' %}fa-shipping-fast{% else %}fa-store{% endif %} tipo-orden-icon"></i>
+                                    <h3 class="text-lg font-bold text-gray-800 mb-2">{{ label }}</h3>
+                                    <p class="text-sm text-gray-600">
+                                        {% if value == 'delivery' %}
+                                            Entrega a domicilio - $2,000
+                                        {% else %}
+                                            Retira en nuestro local - Gratis
+                                        {% endif %}
+                                    </p>
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Campos de DirecciÃ³n (solo para delivery) -->
+                    <div id="direccion-fields" class="direccion-fields show mt-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-map-marker-alt text-primary"></i> DirecciÃ³n de Entrega
+                            </label>
+                            {{ form.direccion_entrega }}
+                            {% if form.direccion_entrega.errors %}
+                                <p class="text-red-600 text-sm mt-1">{{ form.direccion_entrega.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                <i class="fas fa-info-circle text-primary"></i> Referencia (opcional)
+                            </label>
+                            {{ form.referencia_direccion }}
+                            <small class="text-gray-500 text-xs">Ej: Casa amarilla, portÃ³n negro</small>
+                        </div>
+                    </div>
+                </div>
+
+                    <!-- Método de Pago -->
+                    <div class="grid md:grid-cols-2 gap-4">
+                        {% for metodo in metodos_pago %}
+                        <div class="metodo-pago-card" data-metodo="{{ metodo.id }}">
+                            <input type="radio" name="metodo_pago" value="{{ metodo.id }}" id="metodo_{{ metodo.id }}" 
+                                class="hidden" {% if forloop.first %}checked{% endif %}>
+                            <label for="metodo_{{ metodo.id }}" class="cursor-pointer flex items-center">
+                                <div class="mr-4 text-3xl">
+                                    {% if metodo.tipo == 'efectivo' %}
+                                        💵
+                                    {% elif metodo.tipo == 'tarjeta' %}
+                                        💳
+                                    {% elif metodo.tipo == 'webpay' %}
+                                        🔐
+                                    {% else %}
+                                        💰
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h3 class="text-lg font-bold text-gray-800">{{ metodo.nombre }}</h3>
+                                    <p class="text-sm text-gray-600">{{ metodo.get_tipo_display }}</p>
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if form.metodo_pago.errors %}
+                        <p class="text-red-600 text-sm mt-4">{{ form.metodo_pago.errors.0 }}</p>
+                    {% endif %}
+                </div>
+
+                <!-- Notas Adicionales -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">
+                        <i class="fas fa-comment text-primary"></i> Notas Adicionales (Opcional)
+                    </h3>
+                    {{ form.notas }}
+                    <small class="text-gray-500 text-xs">Instrucciones especiales, alergias, sin cebolla, etc.</small>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Resumen del Pedido -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-lg sticky top-24">
+                    <div class="bg-gray-100 border-b p-4">
+                        <h3 class="font-bold text-xl text-gray-800">
+                            <i class="fas fa-receipt text-primary"></i> Resumen del Pedido
+                        </h3>
+                    </div>
+                    
+                    <div class="p-6 space-y-4">
+                        <!-- Productos -->
+                        <div class="max-h-64 overflow-y-auto">
+                            {% for item in items %}
+                            <div class="resumen-item">
+                                <div class="flex justify-between items-start mb-2">
+                                    <span class="font-semibold text-gray-800">{{ item.cantidad }}x {{ item.producto.nombre }}</span>
+                                    <span class="font-bold text-primary">${{ item.subtotal|floatformat:0 }}</span>
+                                </div>
+                                <small class="text-gray-500">@ ${{ item.producto.precio|floatformat:0 }} c/u</small>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <hr class="border-gray-300">
+
+                        <!-- Totales -->
+                        <div class="space-y-3">
+                            <div class="flex justify-between text-gray-700">
+                                <span>Subtotal</span>
+                                <span class="font-semibold">${{ subtotal|floatformat:0 }}</span>
+                            </div>
+                            <div class="flex justify-between text-gray-700" id="costo-envio-display">
+                                <span>Costo de envÃ­o</span>
+                                <span class="font-semibold" id="envio-valor">$2,000</span>
+                            </div>
+                            <hr class="border-gray-300">
+                            <div class="flex justify-between text-xl font-bold">
+                                <span>Total</span>
+                                <span class="text-primary" id="total-final">${{ total|floatformat:0 }}</span>
+                            </div>
+                        </div>
+
+                        <!-- BotÃ³n Confirmar -->
+                        <button type="submit" class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-4 rounded-lg transition duration-200 mt-6">
+                            <i class="fas fa-check-circle mr-2"></i> Confirmar Pedido
+                        </button>
+
+                        <p class="text-xs text-gray-500 text-center mt-4">
+                            <i class="fas fa-lock mr-1"></i> Tu informaciÃ³n estÃ¡ protegida
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tipoOrdenCards = document.querySelectorAll('.tipo-orden-card');
+    const metodoPagoCards = document.querySelectorAll('.metodo-pago-card');
+    const direccionFields = document.getElementById('direccion-fields');
+    const costoEnvioDisplay = document.getElementById('costo-envio-display');
+    const envioValor = document.getElementById('envio-valor');
+    const totalFinal = document.getElementById('total-final');
+    const costoEnvioDelivery = 2000;
+
+    // FunciÃ³n para actualizar el total
+    function actualizarTotal(tipoOrden) {
+        let costoEnvio = 0;
+        
+        if (tipoOrden === 'delivery') {
+            costoEnvio = costoEnvioDelivery;
+            direccionFields.classList.add('show');
+            envioValor.textContent = '$' + costoEnvio.toLocaleString('es-CL');
+        } else {
+            direccionFields.classList.remove('show');
+            envioValor.textContent = '$0';
+        }
+        
+        const total = subtotal + costoEnvio;
+        totalFinal.textContent = '$' + total.toLocaleString('es-CL');
+    }
+    
+
+    // Manejar selecciÃ³n de tipo de orden
+    tipoOrdenCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            const value = this.dataset.value;
+            
+            // Actualizar UI
+            tipoOrdenCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            
+            // Marcar radio
+            radio.checked = true;
+            
+            // Actualizar total y mostrar/ocultar direcciÃ³n
+            actualizarTotal(value);
+        });
+    });
+
+    // Manejar selecciÃ³n de mÃ©todo de pago
+    metodoPagoCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const radio = this.querySelector('input[type="radio"]');
+            
+            // Actualizar UI
+            metodoPagoCards.forEach(c => c.classList.remove('selected'));
+            this.classList.add('selected');
+            
+            // Marcar radio
+            radio.checked = true;
+        });
+    });
+
+    // Inicializar estado
+    const tipoOrdenInicial = document.querySelector('input[name="tipo_orden"]:checked');
+    if (tipoOrdenInicial) {
+        const cardInicial = document.querySelector(`.tipo-orden-card[data-value="${tipoOrdenInicial.value}"]`);
+        if (cardInicial) {
+            cardInicial.classList.add('selected');
+            actualizarTotal(tipoOrdenInicial.value);
+        }
+    }
+
+    // Marcar mÃ©todo de pago inicial
+    const metodoPagoInicial = document.querySelector('input[name="metodo_pago"]:checked');
+    if (metodoPagoInicial) {
+        const cardMetodoInicial = document.querySelector(`.metodo-pago-card[data-metodo="${metodoPagoInicial.value}"]`);
+        if (cardMetodoInicial) {
+            cardMetodoInicial.classList.add('selected');
+        }
+    }
+
+    // ValidaciÃ³n antes de enviar
+    const form = document.getElementById('checkout-form');
+    form.addEventListener('submit', function(e) {
+        const tipoOrden = document.querySelector('input[name="tipo_orden"]:checked').value;
+        const direccion = document.querySelector('textarea[name="direccion_entrega"]').value.trim();
+        
+        if (tipoOrden === 'delivery' && !direccion) {
+            e.preventDefault();
+            alert('Por favor, ingresa tu direcciÃ³n de entrega para pedidos con delivery.');
+            document.querySelector('textarea[name="direccion_entrega"]').focus();
+            return false;
+        }
+    });}
+);
+
+</script>
+{% endblock %}
